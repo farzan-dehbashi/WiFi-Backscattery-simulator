@@ -1,18 +1,26 @@
 import sys
 import numpy as np
-#import matplotlib.pyplot as plt
 import math
 import random
 from operator import attrgetter
 import matplotlib.pyplot as plt
-class jitter:
 
-    mean =0
+
+# Jitter is a class which imitates jitter delay in WiFi packets
+
+class jitter:
+    
+    # Mean is the mean of jitters and standard deviation of jitters should also be set.
+    
+    mean = 0
     standard_deviation = 10
 
     def get_normal_jitter(self):
         normal_jitter = np.random.normal(self.mean, self.standard_deviation, 1)
         return normal_jitter
+    
+ 
+# Packet is a class representing WiFi packets. It includes a start_time, end_time. Owner is the WiFi backscatter tag wich has sent this packet. Is_corrupted shows if this packet is overlapped. Length indicats the time length of this packet.
 
 class Packet:
     id =0
@@ -22,7 +30,7 @@ class Packet:
     owner = 0
     is_corrupted = False
     sent = False
-
+    
     def __init__(self, id, start_time, length, owner):
         self.id = id
         self.start_time = start_time
@@ -30,8 +38,11 @@ class Packet:
         self.owner = owner
         self.end_time = self.start_time + self.length
 
-class Tag:
+       
+# Tag is the class of WiFi backscatter tags. It is the owner of WiFi packets. These tags periodically send data every_n seconds. They start at start_time and end at end_time. Sent_packets take care of all sent packets. Each of these classes may have a unique jitter generator.
 
+
+class Tag:
     id = 0
     start_time = 0
     end_time = 0
@@ -72,8 +83,9 @@ class Tag:
         return sending_packet
 
 
+# Simulator is the parent class of our app. Which takes care of 
+    
 class simulator:
-
     time = 0 #simulator's current time
     start_time = 0
     simulation_time = 0 # the whole simulation's time
@@ -101,7 +113,6 @@ class simulator:
         for i in range(0, self.simulation_time):
             self.timeline.append(0)
 
-
     def initiate(self):#creating tags
         #creating tags
         i = 1
@@ -111,19 +122,15 @@ class simulator:
             if isinstance(new_tag, Tag):
                 self.tags.append(new_tag)
             i = i +1
-
-
         #initiating first packets of all the tags
         for i in range (0, len(self.tags)):
             tag = self.tags[i]
             is_first_packet_of_this_tag = 1; # it is the first packet of this tag
             tag.make_packet(is_first_packet_of_this_tag)
             self.events.append(self.tags[i])
-
         #sorting the events in the event que due to their start time
         #here, each event is a TAG! not a PACKET!
         self.events.sort(key=attrgetter('start_time'), reverse=False)
-
     def simulate(self):
         self.time = 0
         while self.time < self.simulation_time:
@@ -133,14 +140,12 @@ class simulator:
                 self.time = self.events[0].current_packet_send_time  # update time to the first event of the first tag's start time
                 running_tag = self.events.pop(0) #pops the first event/tag
                 sending_packet = running_tag.send()
-
                 self.occured_events.append(sending_packet)
                 running_tag.make_packet(False)
                 self.events.append(running_tag)
         ##########################################################################
             else:
                 break
-
     def mark_corrupted_packets(self):
         # updating error rate
         for event in self.occured_events:
@@ -148,11 +153,9 @@ class simulator:
                 for event2 in self.occured_events:
                     if isinstance(event2, Packet):
                         if not (event is event2):
-
                             if abs(event.start_time - event2.start_time) < event2.length:
                                 event.is_corrupted = True
                                 event2.is_corrupted = True
-
     def calculate_error_rate(self):
         for event in self.occured_events: #calculates number of total errors
             if isinstance(event, Packet):
@@ -163,7 +166,6 @@ class simulator:
         error_percentage = self.number_of_total_errors / len(self.occured_events)
         self.total_error_rate = error_percentage * 100
         return (len(self.occured_events),self.total_error_rate, self.number_of_total_errors)
-
     def calculate_timeline_used_duration(self): #counts the number of time slots when no packet has been sent over that time
         white_space_counter = 0
         for i in range(len(self.timeline)):
@@ -194,23 +196,6 @@ if __name__ == "__main__":
     print(number_of_errors)
     #end execution
 
-
-    #update timeline
-    #for event in simulator.occured_events:
-    #    if isinstance(event, Packet):
-    #        #update timeline
-    #        i = event.start_time
-    #        while i < event.start_time + packet_length:
-    #            simulator.timeline[i] = simulator.timeline[i] + 1
-    #            i = i + 1
-            #end of updating timeline
-
-    #calculate the time period which is used by all the tags
     (number_of_white_spaces, occupancy_rate) = simulator.calculate_timeline_used_duration()
     print("The timeline is occupied by "+str(occupancy_rate)*10+"% as the tags have occupied "+str(number_of_white_spaces)+" slots in total")
-
-    #pringint the resutls
-    #plt.plot(simulator.timeline)
-    #plt.axis()
-    #plt.show()
 
